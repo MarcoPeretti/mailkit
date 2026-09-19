@@ -132,6 +132,10 @@ A directory named `vendor` at the root of a module belongs to the Go toolchain:
 the first time any contributor runs a routine command, silently and with no
 error. Hence `provider`.
 
+## License
+
+MIT. See [LICENSE](LICENSE).
+
 ## Status
 
 `v0.x`, which is not modesty: `dnsx.Resolver` will gain methods, and the seams
