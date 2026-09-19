@@ -32,11 +32,21 @@ const (
 	CategorySupport         = "support"          // sends from a helpdesk: Zendesk, Intercom
 	CategoryForwarding      = "forwarding"       // forwards only: registrar forwarding, ImprovMX
 	CategorySecurityGateway = "security_gateway" // filters inbound: Proofpoint, Mimecast
+
+	// CategoryAuthentication is for services that manage SPF and DMARC on a
+	// domain's behalf: Valimail, EasyDMARC, dmarcian.
+	//
+	// It earns its own category because of what it implies rather than what it
+	// does. A domain using one has already bought a solution to exactly the
+	// problems this module detects, which makes it a different proposition
+	// from one that has never looked.
+	CategoryAuthentication = "authentication"
 )
 
 var categories = map[string]bool{
 	CategoryMailbox: true, CategoryESP: true, CategoryCRM: true,
 	CategorySupport: true, CategoryForwarding: true, CategorySecurityGateway: true,
+	CategoryAuthentication: true,
 }
 
 // Provider is one identified service.

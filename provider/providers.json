@@ -5,8 +5,19 @@
     "outbound": true
   },
   {
+    "id": "alibaba", "name": "Alibaba Mail", "category": "mailbox",
+    "mx": ["mxhichina.com", "aliyun.com"],
+    "spf": ["mail.aliyun.com"],
+    "inbound": true, "outbound": true
+  },
+  {
     "id": "amazon_ses", "name": "Amazon SES", "category": "esp",
     "spf": ["amazonses.com", "eu.amazonses.com"],
+    "outbound": true
+  },
+  {
+    "id": "atlassian", "name": "Atlassian", "category": "support",
+    "spf": ["atlassian.net", "stspg-customer.com"],
     "outbound": true
   },
   {
@@ -26,9 +37,20 @@
     "outbound": true
   },
   {
+    "id": "campaignmonitor", "name": "Campaign Monitor", "category": "esp",
+    "spf": ["createsend.com"],
+    "outbound": true
+  },
+  {
     "id": "cisco_ironport", "name": "Cisco Secure Email", "category": "security_gateway",
     "mx": ["iphmx.com", "cisco.com"],
     "spf": ["iphmx.com"],
+    "inbound": true
+  },
+  {
+    "id": "cloudflare", "name": "Cloudflare Email Routing", "category": "forwarding",
+    "mx": ["mx.cloudflare.net"],
+    "spf": ["mx.cloudflare.net"],
     "inbound": true
   },
   {
@@ -37,10 +59,36 @@
     "outbound": true
   },
   {
+    "id": "dmarcian", "name": "dmarcian", "category": "authentication",
+    "spf": ["dmarcian.com"],
+    "outbound": true
+  },
+  {
+    "id": "easydmarc", "name": "EasyDMARC", "category": "authentication",
+    "spf": ["easydmarc.com", "easydmarc.eu"],
+    "outbound": true
+  },
+  {
+    "id": "elasticemail", "name": "Elastic Email", "category": "esp",
+    "spf": ["elasticemail.com"],
+    "outbound": true
+  },
+  {
     "id": "fastmail", "name": "Fastmail", "category": "mailbox",
     "mx": ["messagingengine.com", "fastmail.com"],
     "spf": ["messagingengine.com", "spf.messagingengine.com"],
     "inbound": true, "outbound": true
+  },
+  {
+    "id": "feishu", "name": "Feishu / Lark", "category": "mailbox",
+    "mx": ["feishu.cn"],
+    "spf": ["feishu.cn"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "firebase", "name": "Firebase", "category": "esp",
+    "spf": ["firebasemail.com"],
+    "outbound": true
   },
   {
     "id": "forwardemail", "name": "ForwardEmail", "category": "forwarding",
@@ -53,10 +101,21 @@
     "outbound": true
   },
   {
+    "id": "godaddy", "name": "GoDaddy", "category": "mailbox",
+    "mx": ["secureserver.net"],
+    "spf": ["secureserver.net"],
+    "inbound": true, "outbound": true
+  },
+  {
     "id": "google_workspace", "name": "Google Workspace", "category": "mailbox",
     "mx": ["google.com", "googlemail.com", "aspmx.l.google.com"],
     "spf": ["_spf.google.com", "_netblocks.google.com", "_netblocks2.google.com", "_netblocks3.google.com"],
     "inbound": true, "outbound": true
+  },
+  {
+    "id": "helpscout", "name": "Help Scout", "category": "support",
+    "spf": ["helpscoutemail.com"],
+    "outbound": true
   },
   {
     "id": "hubspot", "name": "HubSpot", "category": "crm",
@@ -74,6 +133,12 @@
     "outbound": true
   },
   {
+    "id": "ionos", "name": "IONOS", "category": "mailbox",
+    "mx": ["ionos.com", "ionos.de"],
+    "spf": ["ionos.com", "ionos.de"],
+    "inbound": true, "outbound": true
+  },
+  {
     "id": "iterable", "name": "Iterable", "category": "esp",
     "spf": ["iterable.com", "mail.iterable.com"],
     "outbound": true
@@ -84,8 +149,23 @@
     "outbound": true
   },
   {
+    "id": "knowbe4", "name": "KnowBe4", "category": "esp",
+    "spf": ["knowbe4.com"],
+    "outbound": true
+  },
+  {
+    "id": "mailchannels", "name": "MailChannels", "category": "esp",
+    "spf": ["mailchannels.net"],
+    "outbound": true
+  },
+  {
     "id": "mailchimp", "name": "Mailchimp", "category": "esp",
     "spf": ["servers.mcsv.net", "mcsv.net", "mailchimp.com"],
+    "outbound": true
+  },
+  {
+    "id": "mailerlite", "name": "MailerLite", "category": "esp",
+    "spf": ["mlsend.com"],
     "outbound": true
   },
   {
@@ -93,6 +173,11 @@
     "mx": ["mailgun.org"],
     "spf": ["mailgun.org", "spf.mailgun.org"],
     "inbound": true, "outbound": true
+  },
+  {
+    "id": "mailjet", "name": "Mailjet", "category": "esp",
+    "spf": ["mailjet.com"],
+    "outbound": true
   },
   {
     "id": "mandrill", "name": "Mandrill", "category": "esp",
@@ -119,6 +204,7 @@
   {
     "id": "namecheap_forwarding", "name": "Namecheap Email Forwarding", "category": "forwarding",
     "mx": ["registrar-servers.com"],
+    "spf": ["efwd.registrar-servers.com"],
     "inbound": true
   },
   {
@@ -147,8 +233,13 @@
   {
     "id": "protonmail", "name": "Proton Mail", "category": "mailbox",
     "mx": ["protonmail.ch", "proton.me"],
-    "spf": ["_spf.protonmail.ch"],
+    "spf": ["_spf.protonmail.ch", "protonmail.ch"],
     "inbound": true, "outbound": true
+  },
+  {
+    "id": "qualtrics", "name": "Qualtrics", "category": "esp",
+    "spf": ["qualtrics.com"],
+    "outbound": true
   },
   {
     "id": "rackspace", "name": "Rackspace Email", "category": "mailbox",
@@ -158,7 +249,7 @@
   },
   {
     "id": "salesforce", "name": "Salesforce", "category": "crm",
-    "spf": ["_spf.salesforce.com", "salesforce.com", "exacttarget.com", "_spf.exacttarget.com"],
+    "spf": ["_spf.salesforce.com", "salesforce.com", "exacttarget.com", "_spf.exacttarget.com", "pardot.com"],
     "outbound": true
   },
   {
@@ -167,9 +258,30 @@
     "outbound": true
   },
   {
+    "id": "shopify", "name": "Shopify", "category": "esp",
+    "spf": ["shopify.com"],
+    "outbound": true
+  },
+  {
+    "id": "tencent_qq", "name": "Tencent QQ Mail", "category": "mailbox",
+    "mx": ["mail.qq.com", "qq.com"],
+    "spf": ["mail.qq.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "unisender", "name": "UniSender", "category": "esp",
+    "spf": ["unisender.com"],
+    "outbound": true
+  },
+  {
+    "id": "valimail", "name": "Valimail", "category": "authentication",
+    "spf": ["vali.email", "valimail.com"],
+    "outbound": true
+  },
+  {
     "id": "yandex", "name": "Yandex Mail", "category": "mailbox",
     "mx": ["mx.yandex.net", "yandex.ru"],
-    "spf": ["_spf.yandex.net", "_spf.yandex.ru"],
+    "spf": ["_spf.yandex.net", "_spf.yandex.ru", "yandex.ru", "yandex.net"],
     "inbound": true, "outbound": true
   },
   {
@@ -181,7 +293,7 @@
   {
     "id": "zoho", "name": "Zoho Mail", "category": "mailbox",
     "mx": ["zoho.com", "zoho.eu", "zohomail.com"],
-    "spf": ["zoho.com", "zohomail.com", "zoho.eu"],
+    "spf": ["zoho.com", "zohomail.com", "zoho.eu", "zcsend.net", "zeptomail.net"],
     "inbound": true, "outbound": true
   }
 ]

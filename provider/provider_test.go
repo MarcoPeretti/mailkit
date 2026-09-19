@@ -175,3 +175,83 @@ func TestForwardingVendorsAreIdentified(t *testing.T) {
 		}
 	}
 }
+
+// The targets this table was grown from, taken from the ranked queue a ten
+// thousand domain crawl produced. Each one is a real include seen in the wild,
+// so a regression here means a provider silently stopped being recognised.
+func TestGrownFromRealObservations(t *testing.T) {
+	m := Default()
+	cases := map[string]string{
+		"spf.mailjet.com":                "mailjet",
+		"_spf.mx.cloudflare.net":         "cloudflare",
+		"relay.mailchannels.net":         "mailchannels",
+		"et._spf.pardot.com":             "salesforce",
+		"aspmx.pardot.com":               "salesforce",
+		"zcsend.net":                     "zoho",
+		"zeptomail.net":                  "zoho",
+		"spf.efwd.registrar-servers.com": "namecheap_forwarding",
+		"_spf-ipv4-yc-a.yandex.ru":       "yandex",
+		"_spf.mlsend.com":                "mailerlite",
+		"biz-c.mail.qq.com":              "tencent_qq",
+		"spf-0.secureserver.net":         "godaddy",
+		"a.hichina.mail.aliyun.com":      "alibaba",
+		"helpscoutemail.com":             "helpscout",
+		"_spf.psm.knowbe4.com":           "knowbe4",
+		"spf1.m.feishu.cn":               "feishu",
+		"_spf-eu.ionos.com":              "ionos",
+		"_spf.elasticemail.com":          "elasticemail",
+		"_spf.atlassian.net":             "atlassian",
+		"stspg-customer.com":             "atlassian",
+		"_spf2.protonmail.ch":            "protonmail",
+		"spf.unisender.com":              "unisender",
+		"_spf.firebasemail.com":          "firebase",
+		"_spf.createsend.com":            "campaignmonitor",
+		"shops.shopify.com":              "shopify",
+		"_spf.qualtrics.com":             "qualtrics",
+	}
+	for target, want := range cases {
+		v, ok := m.MatchSPF(target)
+		if !ok {
+			t.Errorf("MatchSPF(%q) found nothing, want %s", target, want)
+			continue
+		}
+		if v.ID != want {
+			t.Errorf("MatchSPF(%q) = %s, want %s", target, v.ID, want)
+		}
+	}
+}
+
+// Broadening a rule to catch sub-includes must not broaden it past the
+// organisation that owns it.
+func TestGrownRulesStayWithinTheirOwner(t *testing.T) {
+	m := Default()
+	for _, target := range []string{
+		"notyandex.ru", "evil-qq.com", "fakesecureserver.net",
+		"mailjet.com.attacker.example", "shopify.com.evil.example",
+	} {
+		if v, ok := m.MatchSPF(target); ok {
+			t.Errorf("MatchSPF(%q) matched %q; a broadened rule reached past its owner", target, v.ID)
+		}
+	}
+}
+
+// A domain already paying for DMARC management has a vendor for the problem
+// this module detects, which is worth telling apart from one that has never
+// looked.
+func TestAuthenticationVendorsAreIdentified(t *testing.T) {
+	m := Default()
+	for target, want := range map[string]string{
+		"%{i}._ip.%{h}._ehlo.%{d}._spf.vali.email": "valimail",
+		"spf.easydmarc.com":                        "easydmarc",
+		"_spf.dmarcian.com":                        "dmarcian",
+	} {
+		v, ok := m.MatchSPF(target)
+		if !ok || v.ID != want {
+			t.Errorf("MatchSPF(%q) = %q/%v, want %s", target, v.ID, ok, want)
+			continue
+		}
+		if v.Category != CategoryAuthentication {
+			t.Errorf("%s category = %q, want %q", v.ID, v.Category, CategoryAuthentication)
+		}
+	}
+}
