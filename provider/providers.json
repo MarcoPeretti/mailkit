@@ -1,0 +1,187 @@
+[
+  {
+    "id": "activecampaign", "name": "ActiveCampaign", "category": "esp",
+    "spf": ["emsd1.com", "activecampaign.com", "acemsd1.com", "acemsv1.com"],
+    "outbound": true
+  },
+  {
+    "id": "amazon_ses", "name": "Amazon SES", "category": "esp",
+    "spf": ["amazonses.com", "eu.amazonses.com"],
+    "outbound": true
+  },
+  {
+    "id": "barracuda", "name": "Barracuda", "category": "security_gateway",
+    "mx": ["barracudanetworks.com", "ess.barracudanetworks.com"],
+    "spf": ["barracudanetworks.com"],
+    "inbound": true
+  },
+  {
+    "id": "braze", "name": "Braze", "category": "esp",
+    "spf": ["braze.com", "sparkpostmail.com"],
+    "outbound": true
+  },
+  {
+    "id": "brevo", "name": "Brevo", "category": "esp",
+    "spf": ["sendinblue.com", "spf.sendinblue.com", "brevo.com"],
+    "outbound": true
+  },
+  {
+    "id": "cisco_ironport", "name": "Cisco Secure Email", "category": "security_gateway",
+    "mx": ["iphmx.com", "cisco.com"],
+    "spf": ["iphmx.com"],
+    "inbound": true
+  },
+  {
+    "id": "constantcontact", "name": "Constant Contact", "category": "esp",
+    "spf": ["constantcontact.com", "ccsend.com"],
+    "outbound": true
+  },
+  {
+    "id": "fastmail", "name": "Fastmail", "category": "mailbox",
+    "mx": ["messagingengine.com", "fastmail.com"],
+    "spf": ["messagingengine.com", "spf.messagingengine.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "forwardemail", "name": "ForwardEmail", "category": "forwarding",
+    "mx": ["forwardemail.net"],
+    "inbound": true
+  },
+  {
+    "id": "freshdesk", "name": "Freshdesk", "category": "support",
+    "spf": ["freshdesk.com", "freshemail.io"],
+    "outbound": true
+  },
+  {
+    "id": "google_workspace", "name": "Google Workspace", "category": "mailbox",
+    "mx": ["google.com", "googlemail.com", "aspmx.l.google.com"],
+    "spf": ["_spf.google.com", "_netblocks.google.com", "_netblocks2.google.com", "_netblocks3.google.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "hubspot", "name": "HubSpot", "category": "crm",
+    "spf": ["hubspot.net", "hubspotemail.net", "spf.hubspotemail.net"],
+    "outbound": true
+  },
+  {
+    "id": "improvmx", "name": "ImprovMX", "category": "forwarding",
+    "mx": ["improvmx.com"],
+    "inbound": true
+  },
+  {
+    "id": "intercom", "name": "Intercom", "category": "support",
+    "spf": ["intercom.io", "_spf.intercom.io"],
+    "outbound": true
+  },
+  {
+    "id": "iterable", "name": "Iterable", "category": "esp",
+    "spf": ["iterable.com", "mail.iterable.com"],
+    "outbound": true
+  },
+  {
+    "id": "klaviyo", "name": "Klaviyo", "category": "esp",
+    "spf": ["klaviyomail.com", "_spf.klaviyo.com"],
+    "outbound": true
+  },
+  {
+    "id": "mailchimp", "name": "Mailchimp", "category": "esp",
+    "spf": ["servers.mcsv.net", "mcsv.net", "mailchimp.com"],
+    "outbound": true
+  },
+  {
+    "id": "mailgun", "name": "Mailgun", "category": "esp",
+    "mx": ["mailgun.org"],
+    "spf": ["mailgun.org", "spf.mailgun.org"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "mandrill", "name": "Mandrill", "category": "esp",
+    "spf": ["mandrillapp.com", "spf.mandrillapp.com"],
+    "outbound": true
+  },
+  {
+    "id": "marketo", "name": "Marketo", "category": "esp",
+    "spf": ["mktomail.com", "mktdns.com"],
+    "outbound": true
+  },
+  {
+    "id": "microsoft365", "name": "Microsoft 365", "category": "mailbox",
+    "mx": ["mail.protection.outlook.com", "outlook.com"],
+    "spf": ["spf.protection.outlook.com", "spf.messaging.microsoft.com", "spf-a.outlook.com", "spf-b.outlook.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "mimecast", "name": "Mimecast", "category": "security_gateway",
+    "mx": ["mimecast.com", "mimecast.co.za"],
+    "spf": ["mimecast.com", "_netblocks.mimecast.com"],
+    "inbound": true
+  },
+  {
+    "id": "namecheap_forwarding", "name": "Namecheap Email Forwarding", "category": "forwarding",
+    "mx": ["registrar-servers.com"],
+    "inbound": true
+  },
+  {
+    "id": "namecheap_privateemail", "name": "Namecheap Private Email", "category": "mailbox",
+    "mx": ["privateemail.com"],
+    "spf": ["spf.privateemail.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "ovh", "name": "OVH", "category": "mailbox",
+    "mx": ["ovh.net", "mail.ovh.net"],
+    "spf": ["mx.ovh.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "postmark", "name": "Postmark", "category": "esp",
+    "spf": ["spf.mtasv.net", "mtasv.net"],
+    "outbound": true
+  },
+  {
+    "id": "proofpoint", "name": "Proofpoint", "category": "security_gateway",
+    "mx": ["pphosted.com", "ppe-hosted.com"],
+    "spf": ["_spf.pphosted.com", "pphosted.com"],
+    "inbound": true
+  },
+  {
+    "id": "protonmail", "name": "Proton Mail", "category": "mailbox",
+    "mx": ["protonmail.ch", "proton.me"],
+    "spf": ["_spf.protonmail.ch"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "rackspace", "name": "Rackspace Email", "category": "mailbox",
+    "mx": ["emailsrvr.com"],
+    "spf": ["emailsrvr.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "salesforce", "name": "Salesforce", "category": "crm",
+    "spf": ["_spf.salesforce.com", "salesforce.com", "exacttarget.com", "_spf.exacttarget.com"],
+    "outbound": true
+  },
+  {
+    "id": "sendgrid", "name": "SendGrid", "category": "esp",
+    "spf": ["sendgrid.net", "sendgrid.com"],
+    "outbound": true
+  },
+  {
+    "id": "yandex", "name": "Yandex Mail", "category": "mailbox",
+    "mx": ["mx.yandex.net", "yandex.ru"],
+    "spf": ["_spf.yandex.net", "_spf.yandex.ru"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "zendesk", "name": "Zendesk", "category": "support",
+    "mx": ["mailgun.zendesk.com", "pod.zendesk.com"],
+    "spf": ["mail.zendesk.com", "_spf.zendesk.com"],
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "zoho", "name": "Zoho Mail", "category": "mailbox",
+    "mx": ["zoho.com", "zoho.eu", "zohomail.com"],
+    "spf": ["zoho.com", "zohomail.com", "zoho.eu"],
+    "inbound": true, "outbound": true
+  }
+]

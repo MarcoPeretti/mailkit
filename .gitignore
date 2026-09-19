@@ -1,0 +1,12 @@
+# The Go workspace used for local multi-repo development. It belongs above the
+# repos it joins, and a copy that found its way inside one must never be
+# committed: it would override module resolution for anyone who cloned this.
+/go.work
+/go.work.sum
+
+# Test binaries and coverage output.
+*.test
+*.out
+
+# Editor and OS noise.
+.DS_Store
