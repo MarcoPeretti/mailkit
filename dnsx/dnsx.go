@@ -60,26 +60,26 @@ type TracingResolver interface {
 
 // Answer is one DNS response, including the parts the standard library discards.
 type Answer struct {
-	Name  string
-	Qtype uint16
+	Name  string `json:"name"`
+	Qtype uint16 `json:"qtype"`
 
 	// RCode is the response code, using the values in github.com/miekg/dns
 	// (0 NOERROR, 3 NXDOMAIN). It is what separates a name that does not exist
 	// from one that exists with no records of this type -- a distinction the
 	// SPF void-lookup limit is defined in terms of.
-	RCode int
+	RCode int `json:"rcode"`
 
 	// TTL is the minimum TTL across the answer section, or 0 when it is empty.
 	// Without it a cache cannot honour the zone's own expiry.
-	TTL uint32
+	TTL uint32 `json:"ttl"`
 
-	TXT   []string
-	MX    []*net.MX
-	Hosts []string
+	TXT   []string  `json:"txt,omitempty"`
+	MX    []*net.MX `json:"mx,omitempty"`
+	Hosts []string  `json:"hosts,omitempty"`
 
 	// Server records which resolver answered, so a run is reproducible and a
 	// single misbehaving recursor is identifiable after the fact.
-	Server string
+	Server string `json:"server,omitempty"`
 }
 
 // Empty reports whether a is a void answer in the RFC 7208 section 4.6.4 sense:

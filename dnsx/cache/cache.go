@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"io"
 	"net"
+	"sort"
 	"sync"
 	"time"
 
@@ -83,6 +84,15 @@ type entry struct {
 	// hits counts how often this entry was served. Only entries that were
 	// actually reused are worth carrying between processes; see WriteTo.
 	hits int
+
+	// observed is when the answer came off the wire.
+	//
+	// It is deliberately not derivable from expires: expires folds in the
+	// zone's own TTL, and a reader deciding whether a recorded answer is still
+	// good enough for its purpose needs the age of the observation, not the
+	// life the zone gave the record. One is a fact about when we looked; the
+	// other is a fact about the record. See Export.
+	observed time.Time
 }
 
 type key struct {
@@ -212,7 +222,7 @@ func (c *Cache) put(k key, a *dnsx.Answer) {
 	if len(c.entries) >= c.cfg.MaxEntries {
 		c.evictLocked()
 	}
-	c.entries[k] = entry{answer: a, expires: c.now().Add(ttl)}
+	c.entries[k] = entry{answer: a, expires: c.now().Add(ttl), observed: c.now()}
 }
 
 // evictLocked drops expired entries, and if that was not enough, drops entries
@@ -318,11 +328,20 @@ func notFound(name string) error {
 
 // persisted is one cache entry on the wire.
 type persisted struct {
-	Qtype   uint16       `json:"qtype"`
-	Name    string       `json:"name"`
-	Expires time.Time    `json:"expires"`
-	Hits    int          `json:"hits"`
-	Answer  *dnsx.Answer `json:"answer"`
+	// Kind labels the line so that a stream carrying more than one sort of
+	// record is self-describing. Export sets it; WriteTo leaves it empty,
+	// because a file whose every line is the same shape does not need it.
+	Kind string `json:"kind,omitempty"`
+
+	Qtype   uint16    `json:"qtype"`
+	Name    string    `json:"name"`
+	Expires time.Time `json:"expires"`
+	// Observed is absent in files written before it was recorded; a reader
+	// that finds it zero knows the age is unknown, which is not the same as
+	// zero and must not be read as fresh.
+	Observed time.Time    `json:"observed_at,omitzero"`
+	Hits     int          `json:"hits"`
+	Answer   *dnsx.Answer `json:"answer"`
 }
 
 // WriteTo saves the reusable part of the cache.
@@ -347,7 +366,7 @@ func (c *Cache) WriteTo(w io.Writer) (int64, error) {
 		if e.hits == 0 || now.After(e.expires) {
 			continue
 		}
-		out = append(out, persisted{Qtype: k.qtype, Name: k.name, Expires: e.expires, Hits: e.hits, Answer: e.answer})
+		out = append(out, persisted{Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer})
 	}
 	c.mu.Unlock()
 
@@ -371,7 +390,7 @@ func (c *Cache) ReadFrom(r io.Reader) (int64, error) {
 		if now.After(p.Expires) || p.Answer == nil {
 			continue
 		}
-		c.entries[key{qtype: p.Qtype, name: p.Name}] = entry{answer: p.Answer, expires: p.Expires, hits: p.Hits}
+		c.entries[key{qtype: p.Qtype, name: p.Name}] = entry{answer: p.Answer, expires: p.Expires, observed: p.Observed, hits: p.Hits}
 	}
 	return cr.n, nil
 }
@@ -403,4 +422,82 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	n, err := c.r.Read(p)
 	c.n += int64(n)
 	return n, err
+}
+
+// KindObservation labels an exported line as one DNS question and its answer.
+//
+// It exists because a consumer's stream carries more than observations -- see
+// dnscrawler's stream package, which adds the edges saying why each name was
+// asked about. A line that does not say what it is forces every reader to
+// guess from the fields present, and a reader that guesses wrong about a
+// record type fails in the quiet direction.
+const KindObservation = "observation"
+
+// Retention says what a persisted cache is for.
+//
+// The two files this package can write look almost identical and are not
+// interchangeable, which is the whole reason this is an explicit type rather
+// than a pair of booleans at a call site.
+//
+// WriteTo's file exists to warm the next run of the same program: it should be
+// small, and what makes it small is that four names in five are asked once and
+// will never be asked again. An export for another process wants the opposite
+// -- those once-asked per-domain names are exactly the questions the other
+// process is about to ask -- and it wants the entries whose TTL has run out,
+// because whether a day-old answer is good enough is the reader's judgement to
+// make and it cannot make it about an entry that was dropped on the way out.
+type Retention struct {
+	// MinHits keeps only entries served at least this often. 1 is right for
+	// warming the next run; 0 exports everything observed.
+	MinHits int
+
+	// KeepExpired writes entries whose TTL has run out. The reader decides
+	// whether they are still usable -- see Answer.Observed -- which it can
+	// only do if they are there.
+	KeepExpired bool
+}
+
+// Export writes the cache as JSON Lines, one entry per line.
+//
+// The line format is WriteTo's, one object per line rather than one array, so
+// that a file with a few hundred thousand entries streams in both directions
+// and a truncated write costs one observation rather than all of them.
+//
+// Failures are not in here, because they were never stored: a lookup that did
+// not complete says nothing about the zone. That is what makes a name's
+// absence from this file mean "ask it yourself" rather than "the answer was
+// nothing", and it is the property every reader depends on.
+func (c *Cache) Export(w io.Writer, r Retention) (int64, error) {
+	c.mu.Lock()
+	now := c.now()
+	out := make([]persisted, 0, len(c.entries))
+	for k, e := range c.entries {
+		if e.hits < r.MinHits {
+			continue
+		}
+		if !r.KeepExpired && now.After(e.expires) {
+			continue
+		}
+		out = append(out, persisted{Kind: KindObservation, Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer})
+	}
+	c.mu.Unlock()
+
+	// Sorted, so two exports of the same observations are the same file. A
+	// diff between runs should show what DNS did, not what Go's map iteration
+	// did.
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Name != out[j].Name {
+			return out[i].Name < out[j].Name
+		}
+		return out[i].Qtype < out[j].Qtype
+	})
+
+	cw := &countingWriter{w: w}
+	enc := json.NewEncoder(cw)
+	for i := range out {
+		if err := enc.Encode(&out[i]); err != nil {
+			return cw.n, err
+		}
+	}
+	return cw.n, nil
 }
