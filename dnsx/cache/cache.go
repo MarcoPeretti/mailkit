@@ -326,11 +326,15 @@ func notFound(name string) error {
 	return &net.DNSError{Err: "no such host", Name: name, IsNotFound: true}
 }
 
-// persisted is one cache entry on the wire.
-type persisted struct {
+// Observation is one cache entry on the wire.
+// Observation is one cache entry as it is written out: the question, the
+// answer, and when it was asked. It is the record a consumer of the cache's
+// contents receives, whether from a file or one at a time from Observed.
+type Observation struct {
 	// Kind labels the line so that a stream carrying more than one sort of
-	// record is self-describing. Export sets it; WriteTo leaves it empty,
-	// because a file whose every line is the same shape does not need it.
+	// record is self-describing. Export and Observed set it; WriteTo leaves it
+	// empty, because a file whose every line is the same shape does not need
+	// it.
 	Kind string `json:"kind,omitempty"`
 
 	Qtype   uint16    `json:"qtype"`
@@ -361,12 +365,12 @@ type persisted struct {
 func (c *Cache) WriteTo(w io.Writer) (int64, error) {
 	c.mu.Lock()
 	now := c.now()
-	out := make([]persisted, 0, 128)
+	out := make([]Observation, 0, 128)
 	for k, e := range c.entries {
 		if e.hits == 0 || now.After(e.expires) {
 			continue
 		}
-		out = append(out, persisted{Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer})
+		out = append(out, Observation{Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer})
 	}
 	c.mu.Unlock()
 
@@ -378,7 +382,7 @@ func (c *Cache) WriteTo(w io.Writer) (int64, error) {
 // ReadFrom loads a previously saved cache, dropping anything already expired.
 func (c *Cache) ReadFrom(r io.Reader) (int64, error) {
 	cr := &countingReader{r: r}
-	var in []persisted
+	var in []Observation
 	if err := json.NewDecoder(cr).Decode(&in); err != nil {
 		return cr.n, err
 	}
@@ -433,7 +437,7 @@ func (c *countingReader) Read(p []byte) (int, error) {
 // record type fails in the quiet direction.
 const KindObservation = "observation"
 
-// Retention says what a persisted cache is for.
+// Retention says what a Observation cache is for.
 //
 // The two files this package can write look almost identical and are not
 // interchangeable, which is the whole reason this is an explicit type rather
@@ -470,7 +474,7 @@ type Retention struct {
 func (c *Cache) Export(w io.Writer, r Retention) (int64, error) {
 	c.mu.Lock()
 	now := c.now()
-	out := make([]persisted, 0, len(c.entries))
+	out := make([]Observation, 0, len(c.entries))
 	for k, e := range c.entries {
 		if e.hits < r.MinHits {
 			continue
@@ -478,7 +482,7 @@ func (c *Cache) Export(w io.Writer, r Retention) (int64, error) {
 		if !r.KeepExpired && now.After(e.expires) {
 			continue
 		}
-		out = append(out, persisted{Kind: KindObservation, Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer})
+		out = append(out, Observation{Kind: KindObservation, Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer})
 	}
 	c.mu.Unlock()
 
@@ -500,4 +504,25 @@ func (c *Cache) Export(w io.Writer, r Retention) (int64, error) {
 		}
 	}
 	return cw.n, nil
+}
+
+// Observed returns what the cache holds for one question, expired or not.
+//
+// It is how a caller that knows which questions it asked -- because it asked
+// them a moment ago -- gets the same record Export would write, with the time
+// the answer was actually fetched rather than the time it was served. For a
+// popular name the two differ by up to the TTL, and a consumer versioning
+// records by observation time needs the former.
+//
+// It does not count as a hit, and it does not delete an expired entry, since
+// neither is what the caller is asking about.
+func (c *Cache) Observed(name string, qtype uint16) (Observation, bool) {
+	k := key{qtype: qtype, name: dnsx.Normalize(name)}
+	c.mu.Lock()
+	e, ok := c.entries[k]
+	c.mu.Unlock()
+	if !ok {
+		return Observation{}, false
+	}
+	return Observation{Kind: KindObservation, Qtype: k.qtype, Name: k.name, Expires: e.expires, Observed: e.observed, Hits: e.hits, Answer: e.answer}, true
 }

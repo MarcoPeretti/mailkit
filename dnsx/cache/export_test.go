@@ -148,3 +148,27 @@ func TestExportDistinguishesNodataFromNxdomain(t *testing.T) {
 		t.Errorf("missing.example rcode = %v (present %v), want NXDOMAIN", got, ok)
 	}
 }
+
+// Observed is what a caller uses to fetch the record for a question it just
+// asked. Two things matter: it carries when the answer was fetched, not when
+// it was served, and it is not itself a hit, so it cannot change the file the
+// next run warms from.
+func TestObservedIsTheFetchTimeAndNotAHit(t *testing.T) {
+	c := cache.New(dnstest.New(dnstest.Zone{TXT: map[string][]string{"a.example": {"v=spf1 -all"}}, TTL: map[string]uint32{"a.example": 3600}}), cache.Config{})
+	if _, err := c.LookupTXT(context.Background(), "a.example"); err != nil {
+		t.Fatal(err)
+	}
+	o, ok := c.Observed("A.example.", dnsx.TypeTXT)
+	if !ok {
+		t.Fatal("asked a moment ago and not observed")
+	}
+	if o.Kind != cache.KindObservation || o.Name != "a.example" || o.Observed.IsZero() || o.Answer == nil {
+		t.Errorf("observation = %+v", o)
+	}
+	if o.Hits != 0 {
+		t.Errorf("Observed counted as a hit: hits=%d", o.Hits)
+	}
+	if _, ok := c.Observed("never.example", dnsx.TypeTXT); ok {
+		t.Error("a question never asked has an observation")
+	}
+}
