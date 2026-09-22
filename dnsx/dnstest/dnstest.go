@@ -31,12 +31,15 @@ import (
 // are different answers, and a fake that cannot tell them apart cannot test the
 // code that has to.
 type Zone struct {
-	TXT  map[string][]string  `json:"txt,omitempty"`
-	MX   map[string][]MXEntry `json:"mx,omitempty"`
-	A    map[string][]string  `json:"a,omitempty"`
-	PTR  map[string][]string  `json:"ptr,omitempty"`
-	TTL  map[string]uint32    `json:"ttl,omitempty"`
-	Fail map[string]string    `json:"fail,omitempty"` // name -> error kind
+	TXT map[string][]string  `json:"txt,omitempty"`
+	MX  map[string][]MXEntry `json:"mx,omitempty"`
+	A   map[string][]string  `json:"a,omitempty"`
+	PTR map[string][]string  `json:"ptr,omitempty"`
+	// CNAME redirects a name to another; the answer carries the target's
+	// records and names the first hop, as a real recursor's does.
+	CNAME map[string]string `json:"cname,omitempty"`
+	TTL   map[string]uint32 `json:"ttl,omitempty"`
+	Fail  map[string]string `json:"fail,omitempty"` // name -> error kind
 }
 
 // MXEntry is a JSON-friendly MX record.
@@ -148,6 +151,18 @@ func (r *Resolver) Query(ctx context.Context, name string, qtype uint16) (*dnsx.
 	}
 
 	a := &dnsx.Answer{Name: name, Qtype: qtype, RCode: dnsx.RcodeSuccess, Server: "dnstest", TTL: r.zone.TTL[name]}
+	// Follow a CNAME chain the way a recursor does: the answer is the final
+	// target's, and the first hop is recorded.
+	for hops := 0; hops < 8; hops++ {
+		target, ok := r.zone.CNAME[name]
+		if !ok {
+			break
+		}
+		if a.CNAME == "" {
+			a.CNAME = dnsx.Normalize(target)
+		}
+		name = dnsx.Normalize(target)
+	}
 	present := false
 	switch qtype {
 	case dnsx.TypeTXT:
@@ -183,7 +198,10 @@ func (r *Resolver) nameExists(name string) bool {
 	if _, ok := r.zone.A[name]; ok {
 		return true
 	}
-	_, ok := r.zone.PTR[name]
+	if _, ok := r.zone.PTR[name]; ok {
+		return true
+	}
+	_, ok := r.zone.CNAME[name]
 	return ok
 }
 

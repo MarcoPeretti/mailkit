@@ -291,3 +291,20 @@ func TestMXAndHostLookups(t *testing.T) {
 		t.Errorf("NXDOMAIN should surface as NotFound, got %v", err)
 	}
 }
+
+func TestAnswerKeepsTheFirstCNAMEHop(t *testing.T) {
+	msg := new(dns.Msg)
+	msg.SetQuestion("s1._domainkey.acme.example.", dns.TypeTXT)
+	msg.Answer = []dns.RR{
+		&dns.CNAME{Hdr: dns.RR_Header{Name: "s1._domainkey.acme.example.", Rrtype: dns.TypeCNAME, Ttl: 300}, Target: "s1.domainkey.u1.wl.esp.example."},
+		&dns.CNAME{Hdr: dns.RR_Header{Name: "s1.domainkey.u1.wl.esp.example.", Rrtype: dns.TypeCNAME, Ttl: 300}, Target: "keys.esp.example."},
+		&dns.TXT{Hdr: dns.RR_Header{Name: "keys.esp.example.", Rrtype: dns.TypeTXT, Ttl: 60}, Txt: []string{"v=DKIM1; p=MIGf"}},
+	}
+	a := answerFrom(msg, "s1._domainkey.acme.example", dns.TypeTXT, "test")
+	if a.CNAME != "s1.domainkey.u1.wl.esp.example" {
+		t.Errorf("CNAME = %q, want the first hop", a.CNAME)
+	}
+	if len(a.TXT) != 1 || a.TTL != 60 {
+		t.Errorf("records = %v ttl=%d", a.TXT, a.TTL)
+	}
+}

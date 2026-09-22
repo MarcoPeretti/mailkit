@@ -60,15 +60,27 @@ type Provider struct {
 	MXSuffixes  []string `json:"mx,omitempty"`
 	SPFSuffixes []string `json:"spf,omitempty"`
 
+	// DKIMSuffixes match the CNAME target of a selector record: the one
+	// place a DKIM key names who holds it, since the key itself is a bare
+	// public key. DKIMSelectors are selector names that belong to one vendor
+	// and no other -- "mandrill", "hs1" -- for keys published as TXT, where
+	// there is no target to match. A selector any vendor might use, like
+	// "k1" or "s1", is deliberately not listed: an attribution from a name
+	// two vendors share would be a guess presented as an observation.
+	DKIMSuffixes  []string `json:"dkim,omitempty"`
+	DKIMSelectors []string `json:"dkim_selectors,omitempty"`
+
 	Inbound  bool `json:"inbound,omitempty"`
 	Outbound bool `json:"outbound,omitempty"`
 }
 
 // Matcher resolves hostnames to vendors.
 type Matcher struct {
-	mx  map[string]Provider
-	spf map[string]Provider
-	all []Provider
+	mx        map[string]Provider
+	spf       map[string]Provider
+	dkim      map[string]Provider
+	selectors map[string]Provider
+	all       []Provider
 }
 
 var defaultMatcher = mustLoad(providersJSON)
@@ -82,7 +94,7 @@ func Load(data []byte) (*Matcher, error) {
 	if err := json.Unmarshal(data, &vs); err != nil {
 		return nil, fmt.Errorf("vendor: parsing table: %w", err)
 	}
-	m := &Matcher{mx: map[string]Provider{}, spf: map[string]Provider{}, all: vs}
+	m := &Matcher{mx: map[string]Provider{}, spf: map[string]Provider{}, dkim: map[string]Provider{}, selectors: map[string]Provider{}, all: vs}
 	for _, v := range vs {
 		if v.ID == "" || v.Name == "" {
 			return nil, fmt.Errorf("vendor: entry %q is missing an id or name", v.ID)
@@ -99,6 +111,21 @@ func Load(data []byte) (*Matcher, error) {
 			if err := claim(m.spf, s, v, "spf"); err != nil {
 				return nil, err
 			}
+		}
+		for _, s := range v.DKIMSuffixes {
+			if err := claim(m.dkim, s, v, "dkim"); err != nil {
+				return nil, err
+			}
+		}
+		for _, sel := range v.DKIMSelectors {
+			sel = strings.ToLower(strings.TrimSpace(sel))
+			if sel == "" || strings.Contains(sel, ".") {
+				return nil, fmt.Errorf("vendor: %q has an unusable DKIM selector %q", v.ID, sel)
+			}
+			if prev, ok := m.selectors[sel]; ok && prev.ID != v.ID {
+				return nil, fmt.Errorf("vendor: DKIM selector %q is claimed by both %q and %q", sel, prev.ID, v.ID)
+			}
+			m.selectors[sel] = v
 		}
 	}
 	return m, nil
@@ -132,6 +159,16 @@ func (m *Matcher) MatchMX(host string) (Provider, bool) { return lookup(m.mx, ho
 
 // MatchSPF identifies the provider behind an SPF include or redirect target.
 func (m *Matcher) MatchSPF(target string) (Provider, bool) { return lookup(m.spf, target) }
+
+// MatchDKIM identifies the provider behind a DKIM selector's CNAME target.
+func (m *Matcher) MatchDKIM(cname string) (Provider, bool) { return lookup(m.dkim, cname) }
+
+// MatchDKIMSelector identifies a provider from a selector name alone. Only
+// selectors that belong to exactly one vendor are ever matched.
+func (m *Matcher) MatchDKIMSelector(selector string) (Provider, bool) {
+	v, ok := m.selectors[strings.ToLower(selector)]
+	return v, ok
+}
 
 // lookup walks the name's labels from the left, so the longest matching suffix
 // wins and matching is O(labels) rather than O(table).

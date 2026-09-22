@@ -79,6 +79,13 @@ type Answer struct {
 
 	// Server records which resolver answered, so a run is reproducible and a
 	// single misbehaving recursor is identifiable after the fact.
+	// CNAME is the target the name was redirected to, when the answer came
+	// through one: the first hop, which is what the zone's owner published.
+	// For a DKIM selector that is where the vendor is named -- the key itself
+	// says nothing about who holds it -- so it is kept even though the
+	// records above already reflect the redirection.
+	CNAME string `json:"cname,omitempty"`
+
 	Server string `json:"server,omitempty"`
 }
 

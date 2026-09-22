@@ -224,7 +224,12 @@ func answerFrom(resp *dns.Msg, name string, qtype uint16, server string) *dnsx.A
 		case *dns.NS:
 			a.Hosts = append(a.Hosts, strings.TrimSuffix(v.Ns, "."))
 		case *dns.CNAME:
-			// Followed by the recursor; nothing to record here.
+			// Followed by the recursor, so the records above are the
+			// target's. The first hop is kept because it is the one thing
+			// the owner wrote, and for a DKIM key it names the vendor.
+			if a.CNAME == "" {
+				a.CNAME = dnsx.Normalize(v.Target)
+			}
 		}
 	}
 	return a

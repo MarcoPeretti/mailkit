@@ -113,7 +113,7 @@ func TestUnknownCategoryIsRejected(t *testing.T) {
 // share of the internet and attribute it to one vendor.
 func TestNoRuleIsTooBroad(t *testing.T) {
 	for _, v := range Default().All() {
-		for _, s := range append(append([]string{}, v.MXSuffixes...), v.SPFSuffixes...) {
+		for _, s := range append(append(append([]string{}, v.MXSuffixes...), v.SPFSuffixes...), v.DKIMSuffixes...) {
 			if !strings.Contains(s, ".") {
 				t.Errorf("%s: rule %q has no dot and would match a whole TLD", v.ID, s)
 			}
@@ -144,8 +144,11 @@ func TestVendorsJSONIsSortedByID(t *testing.T) {
 // weight that will never match anything.
 func TestEveryVendorIsReachable(t *testing.T) {
 	for _, v := range Default().All() {
-		if len(v.MXSuffixes) == 0 && len(v.SPFSuffixes) == 0 {
-			t.Errorf("%s has no suffixes and can never match", v.ID)
+		if len(v.MXSuffixes) == 0 && len(v.SPFSuffixes) == 0 && len(v.DKIMSuffixes) == 0 && len(v.DKIMSelectors) == 0 {
+			t.Errorf("%s has no rules and can never match", v.ID)
+		}
+		if (len(v.DKIMSuffixes) > 0 || len(v.DKIMSelectors) > 0) && !v.Outbound {
+			t.Errorf("%s has DKIM rules but is not marked outbound; a DKIM key is evidence of sending", v.ID)
 		}
 		if !v.Inbound && !v.Outbound {
 			t.Errorf("%s is marked neither inbound nor outbound", v.ID)
@@ -253,5 +256,47 @@ func TestAuthenticationVendorsAreIdentified(t *testing.T) {
 		if v.Category != CategoryAuthentication {
 			t.Errorf("%s category = %q, want %q", v.ID, v.Category, CategoryAuthentication)
 		}
+	}
+}
+
+// A DKIM key is a bare public key; the vendor is named by the CNAME target,
+// or by a selector name that belongs to one vendor and no other.
+func TestDKIMIsAttributedByTargetOrByOwnedSelector(t *testing.T) {
+	m := Default()
+	for cname, want := range map[string]string{
+		"dkim.mcsv.net":                            "mailchimp",
+		"s1.domainkey.u123.wl.sendgrid.net":        "sendgrid",
+		"selector1-x._domainkey.x.onmicrosoft.com": "microsoft365",
+		"mandrill._domainkey.mandrillapp.com":      "mandrill",
+		"hs1-123.dkim.hubspotemail.net":            "hubspot",
+	} {
+		v, ok := m.MatchDKIM(cname)
+		if !ok || v.ID != want {
+			t.Errorf("MatchDKIM(%q) = %q, %v; want %q", cname, v.ID, ok, want)
+		}
+	}
+	if _, ok := m.MatchDKIM("evilmcsv.net"); ok {
+		t.Error("a DKIM suffix matched past a label boundary")
+	}
+	for sel, want := range map[string]string{"google": "google_workspace", "mandrill": "mandrill", "hs1": "hubspot", "K2": "mailchimp"} {
+		v, ok := m.MatchDKIMSelector(sel)
+		if !ok || v.ID != want {
+			t.Errorf("MatchDKIMSelector(%q) = %q, %v; want %q", sel, v.ID, ok, want)
+		}
+	}
+	// Shared selectors are not owned by anyone.
+	for _, sel := range []string{"k1", "s1", "s2", "default", "mail", "dkim"} {
+		if v, ok := m.MatchDKIMSelector(sel); ok {
+			t.Errorf("selector %q is attributed to %q, but more than one vendor uses it", sel, v.ID)
+		}
+	}
+}
+
+func TestDuplicateDKIMSelectorIsRejected(t *testing.T) {
+	_, err := Load([]byte(`[
+		{"id":"a","name":"A","category":"esp","spf":["a.example"],"dkim_selectors":["x1"],"outbound":true},
+		{"id":"b","name":"B","category":"esp","spf":["b.example"],"dkim_selectors":["x1"],"outbound":true}]`))
+	if err == nil {
+		t.Fatal("two vendors claiming one selector loaded silently")
 	}
 }
