@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -201,8 +202,30 @@ func (r *Resolver) nameExists(name string) bool {
 	if _, ok := r.zone.PTR[name]; ok {
 		return true
 	}
-	_, ok := r.zone.CNAME[name]
-	return ok
+	if _, ok := r.zone.CNAME[name]; ok {
+		return true
+	}
+	// An empty non-terminal: a name with nothing of its own but with names
+	// beneath it. A real nameserver answers NOERROR with no records for it,
+	// not NXDOMAIN (RFC 8020), and code that reads that difference -- "does
+	// mail.example.com exist at all?" -- needs the fake to make it too.
+	suffix := "." + name
+	for _, m := range []map[string]bool{keys(r.zone.TXT), keys(r.zone.MX), keys(r.zone.A), keys(r.zone.PTR), keys(r.zone.CNAME)} {
+		for k := range m {
+			if strings.HasSuffix(k, suffix) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func keys[V any](m map[string]V) map[string]bool {
+	out := make(map[string]bool, len(m))
+	for k := range m {
+		out[k] = true
+	}
+	return out
 }
 
 func failError(kind, name string) error {

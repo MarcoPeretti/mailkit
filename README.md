@@ -93,6 +93,14 @@ Subpackages:
   and SPF names who may *send*. A merged table would let an MX host answer an
   outbound question, and be wrong about exactly the organisations worth
   noticing — the ones running a marketing stack alongside a mailbox provider.
+  Beyond MX and SPF it names a vendor from a DKIM CNAME target, from a
+  selector one vendor alone uses, from the hash of a public key a vendor hands
+  every customer (`KeyHash`, `MatchDKIMKey`), from the target a customer's
+  subdomain redirects to (`MatchCNAME`), and from the label a vendor's setup
+  guide dictates for a bounce subdomain together with who sits underneath it
+  (`MatchMailFrom`: `send.` on Amazon SES is Resend, `envelope.` on SES is
+  Loops). The last two are conventions rather than records, and a consumer
+  should say so.
 - **`finding`** — a code, a severity and parameters, with no prose. Supply a
   `Renderer` to add words, or none and store the codes.
 

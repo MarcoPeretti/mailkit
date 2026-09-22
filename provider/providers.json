@@ -1,7 +1,10 @@
 [
   {
     "id": "activecampaign", "name": "ActiveCampaign", "category": "esp",
-    "spf": ["emsd1.com", "activecampaign.com", "acemsd1.com", "acemsv1.com"],
+    "mx": ["acems1.com"],
+    "spf": ["emsd1.com", "activecampaign.com", "acemsd1.com", "acemsv1.com", "emsend1.com", "acems1.com", "acemsc4.com"],
+    "dkim": ["acems1.com", "acemsd1.com", "acemsc4.com"], "dkim_selectors": ["acdkim1", "acdkim2"],
+    "cname": ["emsend1.com"],
     "outbound": true
   },
   {
@@ -12,9 +15,17 @@
   },
   {
     "id": "amazon_ses", "name": "Amazon SES", "category": "esp",
+    "mx": ["amazonses.com", "inbound-smtp.us-east-1.amazonaws.com", "inbound-smtp.us-east-2.amazonaws.com", "inbound-smtp.us-west-2.amazonaws.com", "inbound-smtp.eu-west-1.amazonaws.com", "inbound-smtp.eu-west-2.amazonaws.com", "inbound-smtp.eu-central-1.amazonaws.com", "inbound-smtp.ap-southeast-1.amazonaws.com", "inbound-smtp.ap-southeast-2.amazonaws.com", "inbound-smtp.ap-northeast-1.amazonaws.com", "inbound-smtp.ap-south-1.amazonaws.com", "inbound-smtp.ca-central-1.amazonaws.com", "inbound-smtp.sa-east-1.amazonaws.com", "inbound-smtp.eu-north-1.amazonaws.com", "inbound-smtp.il-central-1.amazonaws.com"],
     "spf": ["amazonses.com", "eu.amazonses.com"],
     "dkim": ["amazonses.com"],
-    "outbound": true
+    "inbound": true, "outbound": true
+  },
+  {
+    "id": "apple_icloud", "name": "iCloud Mail", "category": "mailbox",
+    "mx": ["icloud.com"],
+    "spf": ["icloud.com"],
+    "dkim": ["icloudmailadmin.com"], "dkim_selectors": ["sig1"],
+    "inbound": true, "outbound": true
   },
   {
     "id": "atlassian", "name": "Atlassian", "category": "support",
@@ -30,13 +41,15 @@
   },
   {
     "id": "braze", "name": "Braze", "category": "esp",
-    "spf": ["braze.com", "sparkpostmail.com"],
+    "spf": ["braze.com"],
+    "dkim": ["braze.com"],
     "outbound": true
   },
   {
     "id": "brevo", "name": "Brevo", "category": "esp",
     "spf": ["sendinblue.com", "spf.sendinblue.com", "brevo.com"],
     "dkim_selectors": ["sib", "brevo"],
+    "dkim_keys": ["3518d61e31f61a7e"],
     "outbound": true
   },
   {
@@ -60,6 +73,14 @@
   {
     "id": "constantcontact", "name": "Constant Contact", "category": "esp",
     "spf": ["constantcontact.com", "ccsend.com"],
+    "dkim": ["ccsend.com"], "dkim_selectors": ["ctct1", "ctct2"],
+    "outbound": true
+  },
+  {
+    "id": "customerio", "name": "Customer.io", "category": "esp",
+    "mx": ["customeriomail.com"],
+    "spf": ["customeriomail.com"],
+    "dkim": ["customeriomail.com"],
     "outbound": true
   },
   {
@@ -75,6 +96,13 @@
   {
     "id": "elasticemail", "name": "Elastic Email", "category": "esp",
     "spf": ["elasticemail.com"],
+    "dkim": ["elasticemail.com"],
+    "outbound": true
+  },
+  {
+    "id": "eloqua", "name": "Oracle Eloqua", "category": "esp",
+    "spf": ["eloqua.com", "eloqua.net"],
+    "cname": ["eloqua.com"],
     "outbound": true
   },
   {
@@ -102,8 +130,16 @@
   },
   {
     "id": "freshdesk", "name": "Freshdesk", "category": "support",
+    "mx": ["freshdesk.com"],
     "spf": ["freshdesk.com", "freshemail.io"],
     "dkim": ["freshdesk.com"],
+    "cname": ["freshdesk.com"],
+    "outbound": true
+  },
+  {
+    "id": "front", "name": "Front", "category": "support",
+    "spf": ["frontapp.com"],
+    "dkim": ["frontapp.com"],
     "outbound": true
   },
   {
@@ -122,12 +158,14 @@
   {
     "id": "helpscout", "name": "Help Scout", "category": "support",
     "spf": ["helpscoutemail.com"],
+    "dkim": ["helpscoutemail.com"],
     "outbound": true
   },
   {
     "id": "hubspot", "name": "HubSpot", "category": "crm",
     "spf": ["hubspot.net", "hubspotemail.net", "spf.hubspotemail.net"],
     "dkim": ["hubspotemail.net"], "dkim_selectors": ["hs1", "hs2"],
+    "cname": ["hubspot.net", "hs-sites.com", "hubspotpagebuilder.com"],
     "outbound": true
   },
   {
@@ -138,6 +176,7 @@
   {
     "id": "intercom", "name": "Intercom", "category": "support",
     "spf": ["intercom.io", "_spf.intercom.io"],
+    "dkim": ["intercom.io", "intercom-mail.com"], "dkim_selectors": ["intercom"],
     "outbound": true
   },
   {
@@ -149,17 +188,24 @@
   {
     "id": "iterable", "name": "Iterable", "category": "esp",
     "spf": ["iterable.com", "mail.iterable.com"],
+    "dkim": ["iterable.com"],
     "outbound": true
   },
   {
     "id": "klaviyo", "name": "Klaviyo", "category": "esp",
     "spf": ["klaviyomail.com", "_spf.klaviyo.com"],
-    "dkim_selectors": ["kl", "kl2"],
+    "dkim": ["klaviyomail.com", "klaviyo.com"], "dkim_selectors": ["kl", "kl2"],
+    "cname": ["klaviyodns.com"],
     "outbound": true
   },
   {
     "id": "knowbe4", "name": "KnowBe4", "category": "esp",
     "spf": ["knowbe4.com"],
+    "outbound": true
+  },
+  {
+    "id": "loops", "name": "Loops", "category": "esp",
+    "mailfrom": [{"label": "envelope", "on": "amazon_ses"}],
     "outbound": true
   },
   {
@@ -182,23 +228,35 @@
     "id": "mailgun", "name": "Mailgun", "category": "esp",
     "mx": ["mailgun.org"],
     "spf": ["mailgun.org", "spf.mailgun.org"],
+    "mailfrom": [{"label": "mg", "on": "mailgun"}],
     "inbound": true, "outbound": true
   },
   {
     "id": "mailjet", "name": "Mailjet", "category": "esp",
     "spf": ["mailjet.com"],
-    "dkim_selectors": ["mailjet"],
+    "dkim": ["mailjet.com"], "dkim_selectors": ["mailjet"],
+    "outbound": true
+  },
+  {
+    "id": "mailup", "name": "MailUp", "category": "esp",
+    "mx": ["musvc.com"],
+    "spf": ["musvc.com"],
+    "dkim": ["musvc.com"],
     "outbound": true
   },
   {
     "id": "mandrill", "name": "Mandrill", "category": "esp",
     "spf": ["mandrillapp.com", "spf.mandrillapp.com"],
-    "dkim": ["mandrillapp.com"], "dkim_selectors": ["mandrill"],
+    "dkim": ["mandrillapp.com"], "dkim_selectors": ["mandrill", "mte1", "mte2"],
+    "dkim_keys": ["298a44c22d9ef0d6"],
     "outbound": true
   },
   {
     "id": "marketo", "name": "Marketo", "category": "esp",
     "spf": ["mktomail.com", "mktdns.com"],
+    "dkim_selectors": ["m1"],
+    "dkim_keys": ["a63c243355a7ca90", "660c2c27b9ab76ac"],
+    "cname": ["mktoweb.com", "mktossl.com"],
     "outbound": true
   },
   {
@@ -227,6 +285,12 @@
     "inbound": true, "outbound": true
   },
   {
+    "id": "outreach", "name": "Outreach", "category": "crm",
+    "spf": ["outreach.io"],
+    "cname": ["outrch.com"],
+    "outbound": true
+  },
+  {
     "id": "ovh", "name": "OVH", "category": "mailbox",
     "mx": ["ovh.net", "mail.ovh.net"],
     "spf": ["mx.ovh.com"],
@@ -234,8 +298,11 @@
   },
   {
     "id": "postmark", "name": "Postmark", "category": "esp",
+    "mx": ["mtasv.net"],
     "spf": ["spf.mtasv.net", "mtasv.net"],
-    "dkim_selectors": ["pm"],
+    "dkim": ["mtasv.net"], "dkim_selectors": ["pm"],
+    "cname": ["mtasv.net"],
+    "mailfrom": [{"label": "pm-bounces", "on": "postmark"}],
     "outbound": true
   },
   {
@@ -263,19 +330,43 @@
     "inbound": true, "outbound": true
   },
   {
+    "id": "resend", "name": "Resend", "category": "esp",
+    "dkim_selectors": ["resend"],
+    "mailfrom": [{"label": "send", "on": "amazon_ses"}],
+    "outbound": true
+  },
+  {
     "id": "salesforce", "name": "Salesforce", "category": "crm",
     "spf": ["_spf.salesforce.com", "salesforce.com", "exacttarget.com", "_spf.exacttarget.com", "pardot.com"],
+    "dkim": ["exacttarget.com", "pardot.com"],
+    "dkim_keys": ["0282d883cd24e479"],
+    "cname": ["pardot.com", "exacttarget.com"],
     "outbound": true
   },
   {
     "id": "sendgrid", "name": "SendGrid", "category": "esp",
+    "mx": ["sendgrid.net"],
     "spf": ["sendgrid.net", "sendgrid.com"],
     "dkim": ["sendgrid.net"],
+    "cname": ["sendgrid.net"],
     "outbound": true
   },
   {
     "id": "shopify", "name": "Shopify", "category": "esp",
     "spf": ["shopify.com"],
+    "outbound": true
+  },
+  {
+    "id": "smtp2go", "name": "SMTP2GO", "category": "esp",
+    "spf": ["smtp2go.com", "smtpservice.net"],
+    "dkim": ["smtp2go.net", "smtpservice.net"],
+    "outbound": true
+  },
+  {
+    "id": "sparkpost", "name": "SparkPost", "category": "esp",
+    "mx": ["sparkpostmail.com"],
+    "spf": ["sparkpostmail.com"],
+    "dkim": ["sparkpostmail.com"],
     "outbound": true
   },
   {
@@ -302,16 +393,17 @@
   },
   {
     "id": "zendesk", "name": "Zendesk", "category": "support",
-    "mx": ["mailgun.zendesk.com", "pod.zendesk.com"],
+    "mx": ["zendesk.com"],
     "spf": ["mail.zendesk.com", "_spf.zendesk.com"],
     "dkim": ["zendesk.com"], "dkim_selectors": ["zendesk1", "zendesk2"],
+    "cname": ["zendesk.com"],
     "inbound": true, "outbound": true
   },
   {
     "id": "zoho", "name": "Zoho Mail", "category": "mailbox",
     "mx": ["zoho.com", "zoho.eu", "zohomail.com"],
     "spf": ["zoho.com", "zohomail.com", "zoho.eu", "zcsend.net", "zeptomail.net"],
-    "dkim_selectors": ["zoho"],
+    "dkim": ["zoho.com", "zohomail.com", "zoho.eu"], "dkim_selectors": ["zoho"],
     "inbound": true, "outbound": true
   }
 ]

@@ -83,8 +83,8 @@ func TestMXAndSPFTablesAreSeparate(t *testing.T) {
 		t.Errorf("MatchMX gave %q/%v, want microsoft365", v.ID, ok)
 	}
 
-	// SendGrid is outbound only and publishes no MX for its customers.
-	if _, ok := m.MatchMX("sendgrid.net"); ok {
+	// Marketo is outbound only and publishes no MX for its customers.
+	if _, ok := m.MatchMX("mktomail.com"); ok {
 		t.Error("an outbound-only ESP matched as an inbound MX provider")
 	}
 }
@@ -113,7 +113,7 @@ func TestUnknownCategoryIsRejected(t *testing.T) {
 // share of the internet and attribute it to one vendor.
 func TestNoRuleIsTooBroad(t *testing.T) {
 	for _, v := range Default().All() {
-		for _, s := range append(append(append([]string{}, v.MXSuffixes...), v.SPFSuffixes...), v.DKIMSuffixes...) {
+		for _, s := range append(append(append(append([]string{}, v.MXSuffixes...), v.SPFSuffixes...), v.DKIMSuffixes...), v.CNAMESuffixes...) {
 			if !strings.Contains(s, ".") {
 				t.Errorf("%s: rule %q has no dot and would match a whole TLD", v.ID, s)
 			}
@@ -144,18 +144,19 @@ func TestVendorsJSONIsSortedByID(t *testing.T) {
 // weight that will never match anything.
 func TestEveryVendorIsReachable(t *testing.T) {
 	for _, v := range Default().All() {
-		if len(v.MXSuffixes) == 0 && len(v.SPFSuffixes) == 0 && len(v.DKIMSuffixes) == 0 && len(v.DKIMSelectors) == 0 {
+		if len(v.MXSuffixes) == 0 && len(v.SPFSuffixes) == 0 && len(v.DKIMSuffixes) == 0 && len(v.DKIMSelectors) == 0 &&
+			len(v.DKIMKeys) == 0 && len(v.CNAMESuffixes) == 0 && len(v.MailFrom) == 0 {
 			t.Errorf("%s has no rules and can never match", v.ID)
 		}
-		if (len(v.DKIMSuffixes) > 0 || len(v.DKIMSelectors) > 0) && !v.Outbound {
-			t.Errorf("%s has DKIM rules but is not marked outbound; a DKIM key is evidence of sending", v.ID)
+		if (len(v.DKIMSuffixes) > 0 || len(v.DKIMSelectors) > 0 || len(v.DKIMKeys) > 0 || len(v.MailFrom) > 0) && !v.Outbound {
+			t.Errorf("%s has DKIM or MAIL FROM rules but is not marked outbound; both are evidence of sending", v.ID)
 		}
 		if !v.Inbound && !v.Outbound {
 			t.Errorf("%s is marked neither inbound nor outbound", v.ID)
 		}
-		if len(v.MXSuffixes) > 0 && !v.Inbound {
-			t.Errorf("%s has MX rules but is not marked inbound", v.ID)
-		}
+		// An MX rule on an outbound-only vendor is allowed: it names the
+		// bounce host of a MAIL FROM subdomain (feedback-smtp.*.amazonses.com,
+		// p-pm-bounce-*.mtasv.net), which is sending infrastructure.
 	}
 }
 
@@ -298,5 +299,140 @@ func TestDuplicateDKIMSelectorIsRejected(t *testing.T) {
 		{"id":"b","name":"B","category":"esp","spf":["b.example"],"dkim_selectors":["x1"],"outbound":true}]`))
 	if err == nil {
 		t.Fatal("two vendors claiming one selector loaded silently")
+	}
+}
+
+// A bare TXT key names nobody, but a key the vendor hands every customer
+// does. The hash is of the p= value alone, so whitespace and tag order in
+// the record do not change it.
+func TestSharedKeysNameTheirVendor(t *testing.T) {
+	m := Default()
+	rec := "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+	h := KeyHash(rec)
+	if len(h) != keyHashLen {
+		t.Fatalf("KeyHash = %q, want %d hex characters", h, keyHashLen)
+	}
+	if KeyHash("k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC; t=s") != h {
+		t.Error("the hash depends on tags other than p=")
+	}
+	if KeyHash("v=DKIM1; k=rsa") != "" {
+		t.Error("a record with no key hashed to something")
+	}
+	if v, ok := m.MatchDKIMKey("a63c243355a7ca90"); !ok || v.ID != "marketo" {
+		t.Errorf("MatchDKIMKey(marketo pod key) = %q, %v", v.ID, ok)
+	}
+	if _, ok := m.MatchDKIMKey(h); ok {
+		t.Error("an unknown key matched a vendor")
+	}
+	_, err := Load([]byte(`[{"id":"a","name":"A","category":"esp","dkim_keys":["nothex"],"outbound":true}]`))
+	if err == nil {
+		t.Error("a malformed key hash loaded silently")
+	}
+	_, err = Load([]byte(`[
+		{"id":"a","name":"A","category":"esp","dkim_keys":["0000000000000000"],"outbound":true},
+		{"id":"b","name":"B","category":"esp","dkim_keys":["0000000000000000"],"outbound":true}]`))
+	if err == nil {
+		t.Error("two vendors claiming one key loaded silently")
+	}
+}
+
+// Two vendors on Amazon SES leave no record naming themselves; the label of
+// the bounce subdomain is the only trace. The same label with a different
+// vendor underneath is not a match.
+func TestMailFromLabelsAreReadWithWhatIsUnderneath(t *testing.T) {
+	m := Default()
+	for _, c := range []struct{ label, on, want string }{
+		{"send", "amazon_ses", "resend"},
+		{"envelope", "amazon_ses", "loops"},
+		{"pm-bounces", "postmark", "postmark"},
+		{"mg", "mailgun", "mailgun"},
+		{"send", "sendgrid", ""},
+		{"send", "", ""},
+		{"mail", "amazon_ses", ""},
+	} {
+		v, ok := m.MatchMailFrom(c.label, c.on)
+		if c.want == "" {
+			if ok {
+				t.Errorf("MatchMailFrom(%q, %q) = %q, want no match", c.label, c.on, v.ID)
+			}
+			continue
+		}
+		if !ok || v.ID != c.want {
+			t.Errorf("MatchMailFrom(%q, %q) = %q/%v, want %q", c.label, c.on, v.ID, ok, c.want)
+		}
+	}
+	_, err := Load([]byte(`[
+		{"id":"a","name":"A","category":"esp","mailfrom":[{"label":"x","on":"z"}],"outbound":true},
+		{"id":"b","name":"B","category":"esp","mailfrom":[{"label":"x","on":"z"}],"outbound":true}]`))
+	if err == nil {
+		t.Error("two vendors claiming one label loaded silently")
+	}
+}
+
+// The target a customer's subdomain is redirected to names the vendor whose
+// guide dictated the redirect.
+func TestCNAMETargetsNameTheirVendor(t *testing.T) {
+	m := Default()
+	for target, want := range map[string]string{
+		"pm.mtasv.net":                    "postmark",
+		"442-xlc-320.mktoweb.com":         "marketo",
+		"cmd.emsend1.com":                 "activecampaign",
+		"sendgrid.net":                    "sendgrid",
+		"x.freshdesk.com":                 "freshdesk",
+		"go.pardot.com":                   "salesforce",
+		"abc.outrch.com":                  "outreach",
+		"hyx3plhbq22t.stspg-customer.com": "",
+	} {
+		v, ok := m.MatchCNAME(target)
+		if want == "" {
+			if ok {
+				t.Errorf("MatchCNAME(%q) = %q, want no match", target, v.ID)
+			}
+			continue
+		}
+		if !ok || v.ID != want {
+			t.Errorf("MatchCNAME(%q) = %q/%v, want %q", target, v.ID, ok, want)
+		}
+	}
+}
+
+// The rules the 2026-09-22 measurement added, each seen in the wild.
+func TestSendersFoundOnSubdomainsAreNamed(t *testing.T) {
+	m := Default()
+	for host, want := range map[string]string{
+		"feedback-smtp.us-east-1.amazonses.com":      "amazon_ses",
+		"inbound-smtp.eu-west-1.amazonaws.com":       "amazon_ses",
+		"p-pm-bounce-smtp01a-aws-useast2a.mtasv.net": "postmark",
+		"mx.sendgrid.net":                            "sendgrid",
+		"mail-pod-28.int.zendesk.com":                "zendesk",
+		"smtp.eu.sparkpostmail.com":                  "sparkpost",
+		"mxa.freshdesk.com":                          "freshdesk",
+		"mx1.acems1.com":                             "activecampaign",
+	} {
+		v, ok := m.MatchMX(host)
+		if !ok || v.ID != want {
+			t.Errorf("MatchMX(%q) = %q/%v, want %q", host, v.ID, ok, want)
+		}
+	}
+	// ec2 hosts are not SES inbound: the SES rule is the exact regional name.
+	if v, ok := m.MatchMX("ec2-1-2-3-4.compute-1.amazonaws.com"); ok {
+		t.Errorf("an EC2 host matched %q", v.ID)
+	}
+	for cname, want := range map[string]string{
+		"dkim.acdkim1.acems1.com":                               "activecampaign",
+		"ml02.dkim.musvc.com":                                   "mailup",
+		"543e9a9d-b89f-4ac1-b2b8-c5305335177c.dkim.intercom.io": "intercom",
+		"sig1.dkim.example.com.at.icloudmailadmin.com":          "apple_icloud",
+	} {
+		v, ok := m.MatchDKIM(cname)
+		if !ok || v.ID != want {
+			t.Errorf("MatchDKIM(%q) = %q/%v, want %q", cname, v.ID, ok, want)
+		}
+	}
+	for sel, want := range map[string]string{"resend": "resend", "acdkim1": "activecampaign", "m1": "marketo", "intercom": "intercom", "mte2": "mandrill", "ctct1": "constantcontact", "sig1": "apple_icloud"} {
+		v, ok := m.MatchDKIMSelector(sel)
+		if !ok || v.ID != want {
+			t.Errorf("MatchDKIMSelector(%q) = %q/%v, want %q", sel, v.ID, ok, want)
+		}
 	}
 }
